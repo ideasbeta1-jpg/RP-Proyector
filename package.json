@@ -1,0 +1,43 @@
+{
+  "name": "rp-proyector",
+  "version": "1.0.0",
+  "description": "Proyector de Biblia, canciones y anuncios para la Iglesia Pentecostal",
+  "main": "./out/main/index.js",
+  "author": "RP Proyector",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "better-sqlite3": "^12.10.0",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@electron/rebuild": "^4.0.1",
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-vite": "^2.3.0",
+    "immer": "^10.1.1",
+    "lucide-react": "^0.511.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.8.0",
+    "vite": "^5.4.0",
+    "zustand": "^5.0.8"
+  }
+}

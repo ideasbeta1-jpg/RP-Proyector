@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  overflow: hidden;
+  cursor: none; /* sin cursor sobre el proyector */
+}
