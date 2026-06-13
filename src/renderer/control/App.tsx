@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, Globe, Megaphone, Music, Plus } from 'lucide-react'
+import { BookOpen, Globe, Megaphone, Music, Plus, Settings } from 'lucide-react'
 import { useSongsStore } from './store/songsStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import SearchBar from './components/search/SearchBar'
@@ -10,6 +10,7 @@ import AnnouncementsPanel from './components/announcements/AnnouncementsPanel'
 import CommunityPanel from './components/community/CommunityPanel'
 import AuthStatus from './components/community/AuthStatus'
 import AuthModal from './components/community/AuthModal'
+import SettingsPanel from './components/settings/SettingsPanel'
 import SectionNavigator from './components/projection/SectionNavigator'
 import SlidePreview from './components/projection/SlidePreview'
 import ProjectionControls from './components/projection/ProjectionControls'
@@ -23,6 +24,7 @@ export default function App(): React.JSX.Element {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
 
   useKeyboardShortcuts()
@@ -62,6 +64,13 @@ export default function App(): React.JSX.Element {
                 <Plus className="size-4" /> Nueva
               </button>
             )}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              title="Ajustes"
+            >
+              <Settings className="size-4" />
+            </button>
           </div>
         </div>
 
@@ -119,6 +128,7 @@ export default function App(): React.JSX.Element {
           onClose={() => setAuthModalOpen(false)}
         />
       )}
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }

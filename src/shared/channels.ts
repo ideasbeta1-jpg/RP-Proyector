@@ -46,8 +46,19 @@ export const Channels = {
     black: 'projection:black',
     logo: 'projection:logo'
   },
-  // Evento push: main → ventana output
+  backup: {
+    export: 'backup:export',
+    import: 'backup:import'
+  },
+  theme: {
+    set: 'theme:set'
+  },
+  // Eventos push (main → renderer)
   events: {
-    projectionUpdate: 'projection:update'
+    projectionUpdate: 'projection:update',
+    shortcutAction: 'shortcut:action',   // main → control renderer
+    themeChange: 'theme:change',          // main → output renderer
+    updateAvailable: 'updater:available',
+    updateDownloaded: 'updater:downloaded'
   }
 } as const

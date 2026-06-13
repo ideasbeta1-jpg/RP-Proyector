@@ -185,6 +185,19 @@ export interface ProjectionPayload {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Temas y respaldo (Fase 5)
+// ─────────────────────────────────────────────────────────────
+
+export type ThemeId = 'default' | 'dark-gold' | 'minimal'
+
+export interface BackupResult {
+  path: string
+  sizeMb: number
+}
+
+export type ShortcutAction = 'next-section' | 'prev-section' | 'black' | 'logo'
+
+// ─────────────────────────────────────────────────────────────
 // Comunidad / Nube (Fase 4)
 // ─────────────────────────────────────────────────────────────
 
@@ -238,6 +251,18 @@ export type IpcResult<T> =
 // ─────────────────────────────────────────────────────────────
 
 export interface ControlApi {
+  backup: {
+    export: () => Promise<IpcResult<BackupResult>>
+    import: () => Promise<IpcResult<void>>
+  }
+  theme: {
+    set: (themeId: ThemeId) => Promise<IpcResult<void>>
+  }
+  updater: {
+    onUpdateAvailable: (cb: () => void) => () => void
+    onUpdateDownloaded: (cb: () => void) => () => void
+    installUpdate: () => void
+  }
   auth: {
     login: (email: string, password: string) => Promise<IpcResult<AuthUser>>
     register: (email: string, password: string, nombreIglesia: string) => Promise<IpcResult<AuthUser>>
@@ -296,4 +321,9 @@ export interface ControlApi {
 
 export interface OutputApi {
   onProjectionUpdate: (callback: (payload: ProjectionPayload) => void) => () => void
+  onThemeChange: (callback: (themeId: ThemeId) => void) => () => void
+}
+
+export interface ControlWindowApi extends ControlApi {
+  onShortcutAction: (callback: (action: ShortcutAction) => void) => () => void
 }

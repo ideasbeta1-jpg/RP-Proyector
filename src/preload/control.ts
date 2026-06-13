@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { Channels } from '@shared/channels'
 import type {
-  ControlApi,
+  ControlWindowApi,
   ConflictStrategy,
   CreateAnnouncementInput,
   UpdateAnnouncementInput,
@@ -9,10 +9,37 @@ import type {
   ListSongsOptions,
   ParsedReference,
   ProjectionPayload,
+  ShortcutAction,
+  ThemeId,
   UpdateSongInput
 } from '@shared/types'
 
-const api: ControlApi = {
+const api: ControlWindowApi = {
+  backup: {
+    export: () => ipcRenderer.invoke(Channels.backup.export),
+    import: () => ipcRenderer.invoke(Channels.backup.import)
+  },
+  theme: {
+    set: (themeId: ThemeId) => ipcRenderer.invoke(Channels.theme.set, themeId)
+  },
+  updater: {
+    onUpdateAvailable: (cb: () => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on(Channels.events.updateAvailable, listener)
+      return () => ipcRenderer.removeListener(Channels.events.updateAvailable, listener)
+    },
+    onUpdateDownloaded: (cb: () => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on(Channels.events.updateDownloaded, listener)
+      return () => ipcRenderer.removeListener(Channels.events.updateDownloaded, listener)
+    },
+    installUpdate: () => ipcRenderer.send('updater:install')
+  },
+  onShortcutAction: (cb: (action: ShortcutAction) => void) => {
+    const listener = (_e: unknown, action: ShortcutAction): void => cb(action)
+    ipcRenderer.on(Channels.events.shortcutAction, listener)
+    return () => ipcRenderer.removeListener(Channels.events.shortcutAction, listener)
+  },
   auth: {
     status: () => ipcRenderer.invoke(Channels.auth.status),
     login: (email: string, password: string) =>

@@ -12,11 +12,46 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "build:win": "npm run build && electron-builder --win",
+    "build:portable": "npm run build && electron-builder --win portable",
+    "import-songs": "set ELECTRON_RUN_AS_NODE=1 && electron scripts/scrape-songs.cjs",
+    "import-songs:test": "set ELECTRON_RUN_AS_NODE=1 && electron scripts/scrape-songs.cjs --test"
+  },
+  "build": {
+    "appId": "org.iglesiapentecostal.rpproyector",
+    "productName": "RP Proyector",
+    "copyright": "Copyright © 2026 Iglesia Pentecostal",
+    "directories": { "output": "dist-installer" },
+    "files": ["out/**/*", "!out/**/*.map"],
+    "extraResources": [
+      { "from": "resources/bible", "to": "bible", "filter": ["**/*.json"] }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RP Proyector"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "rinconpentecostal",
+      "repo": "rp-proyector"
+    }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
+    "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.10.0",
+    "electron-updater": "^6.8.9",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
@@ -24,12 +59,14 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@electron/rebuild": "^4.0.1",
     "@tailwindcss/vite": "^4.1.13",
+    "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^2.3.0",
     "immer": "^10.1.1",
     "lucide-react": "^0.511.0",

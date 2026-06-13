@@ -2,6 +2,7 @@ node_modules/
 out/
 dist/
 dist-electron-builder/
+dist-installer/
 dev-data/
 *.log
 .DS_Store
