@@ -1,6 +1,6 @@
 {
   "name": "rp-proyector",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Proyector de Biblia, canciones y anuncios para la Iglesia Pentecostal",
   "main": "./out/main/index.js",
   "author": "RP Proyector",
