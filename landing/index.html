@@ -8,6 +8,8 @@
   <meta property="og:title" content="RP Proyector — Proyección para iglesias">
   <meta property="og:description" content="Controla canciones, versículos y anuncios en tiempo real. Gratis para Windows.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="logo.png">
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -58,11 +60,10 @@
       text-decoration: none; letter-spacing: -.01em;
     }
     .logo-mark {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: var(--gold);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 17px; flex-shrink: 0;
+      width: 34px; height: 34px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
     }
+    .logo-mark img { width: 100%; height: 100%; object-fit: cover; }
 
     .nav-links {
       display: flex; align-items: center; gap: 28px; list-style: none;
@@ -360,7 +361,7 @@
     }
     .foot-left { display: flex; align-items: center; gap: 16px; }
     .foot-logo { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
-    .foot-logo .logo-mark { width: 24px; height: 24px; font-size: 13px; border-radius: 6px; }
+    .foot-logo .logo-mark { width: 28px; height: 28px; }
     .foot-copy { font-size: 12px; color: var(--muted); }
     .foot-links { display: flex; gap: 22px; }
     .foot-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
@@ -392,7 +393,7 @@
 <!-- NAV -->
 <nav>
   <a href="#" class="logo">
-    <div class="logo-mark">🎵</div>
+    <div class="logo-mark"><img src="logo.png" alt="Rincón Pentecostal"></div>
     RP Proyector
   </a>
   <ul class="nav-links">
@@ -593,7 +594,7 @@
 
     <div class="dl-cards">
       <a
-        href="https://github.com/ideasbeta1-jpg/RP-Proyector/releases/latest/download/RP-Proyector-Setup-2.0.0.exe"
+        href="https://github.com/ideasbeta1-jpg/RP-Proyector/releases/latest/download/RP.Proyector.Setup.2.0.0.exe"
         class="dl-card featured"
       >
         <div class="dl-card-ico">🪟</div>
@@ -602,7 +603,7 @@
         <div class="dl-badge">Recomendado</div>
       </a>
       <a
-        href="https://github.com/ideasbeta1-jpg/RP-Proyector/releases/latest/download/RP-Proyector-2.0.0.exe"
+        href="https://github.com/ideasbeta1-jpg/RP-Proyector/releases/latest/download/RP.Proyector.2.0.0.exe"
         class="dl-card"
       >
         <div class="dl-card-ico">📦</div>
@@ -632,10 +633,10 @@
   <div class="foot-inner">
     <div class="foot-left">
       <div class="foot-logo">
-        <div class="logo-mark">🎵</div>
+        <div class="logo-mark"><img src="logo.png" alt="Rincón Pentecostal"></div>
         RP Proyector
       </div>
-      <span class="foot-copy">© 2026 Iglesia Pentecostal · Licencia MIT</span>
+      <span class="foot-copy">© 2026 Rincón Pentecostal · Licencia MIT</span>
     </div>
     <div class="foot-links">
       <a href="https://github.com/ideasbeta1-jpg/RP-Proyector">GitHub</a>
