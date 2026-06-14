@@ -42,6 +42,22 @@
           └─────────────────────────────┘
 ```
 
+## Protocolo `app-asset:///`
+
+Las imágenes de anuncios y fondos de diapositivas se guardan en `{userData}/images/` y se sirven a los renderers mediante un protocolo personalizado registrado en el main:
+
+```typescript
+protocol.handle('app-asset', (request) => {
+  const filename = decodeURIComponent(new URL(request.url).pathname.replace(/^\//, ''))
+  const filePath = join(app.getPath('userData'), 'images', filename)
+  return net.fetch(`file://${filePath}`)
+})
+```
+
+Esto permite que el renderer use URLs como `app-asset:///anuncios/cartel.jpg` sin rutas absolutas del sistema de archivos.
+
+---
+
 ## Los tres procesos de Electron
 
 Electron divide el código en tres áreas aisladas:
@@ -123,6 +139,31 @@ La clave del diseño: **la búsqueda y navegación del operador nunca cambia lo 
 | Output renderer | `useState` local | Payload actual a mostrar |
 
 No se usa Context de React para estado frecuentemente actualizado — Zustand es más eficiente para actualizaciones de alta frecuencia como la búsqueda en tiempo real.
+
+## Atajos de teclado globales
+
+Registrados con `globalShortcut` en el main al arrancar. Funcionan aunque la ventana de control no tenga el foco — útil cuando el operador tiene el mouse en otra ventana.
+
+| Tecla | Acción |
+|---|---|
+| `F5` | Sección anterior |
+| `F6` | Sección siguiente |
+| `F7` | Pantalla negra |
+| `F8` | Logo |
+| `Escape` | Pantalla negra |
+
+El main envía el evento `shortcut:action` a la ventana de control, que lo recibe y actualiza el store de proyección. El output reacciona al store automáticamente.
+
+## Auto-updater
+
+`electron-updater` está configurado y se activa **solo en producción** (`app.isPackaged`). Al arrancar:
+
+1. Llama a `autoUpdater.checkForUpdatesAndNotify()`.
+2. Si hay versión nueva disponible, envía `updater:available` a la ventana de control.
+3. Cuando se descarga, envía `updater:downloaded`.
+4. Al instalar, el renderer llama a `updater:install` y el main ejecuta `autoUpdater.quitAndInstall()`.
+
+En desarrollo, el auto-updater está desactivado para no interferir con el flujo de trabajo.
 
 ## Build system
 

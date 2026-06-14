@@ -1,17 +1,154 @@
 @import 'tailwindcss';
 
+@theme {
+  /* ── Sovereign Gold & Onyx ── */
+
+  /* Surfaces */
+  --color-surface: #131313;
+  --color-surface-dim: #0e0e0e;
+  --color-surface-bright: #3a3939;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353534;
+  --color-surface-variant: #353534;
+
+  /* Text */
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #d0c5af;
+  --color-inverse-surface: #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  --color-on-background: #e5e2e1;
+
+  /* Borders */
+  --color-outline: #99907c;
+  --color-outline-variant: #4d4635;
+
+  /* Primary – Gold */
+  --color-primary: #f2ca50;
+  --color-on-primary: #3c2f00;
+  --color-primary-container: #d4af37;
+  --color-on-primary-container: #554300;
+  --color-primary-fixed: #ffe088;
+  --color-primary-fixed-dim: #e9c349;
+  --color-inverse-primary: #735c00;
+  --color-surface-tint: #e9c349;
+
+  /* Secondary */
+  --color-secondary: #c8c6c5;
+  --color-on-secondary: #313030;
+  --color-secondary-container: #474746;
+  --color-on-secondary-container: #b7b5b4;
+
+  /* Tertiary */
+  --color-tertiary: #ebcc6e;
+  --color-on-tertiary: #3c2f00;
+  --color-tertiary-container: #ceb056;
+
+  /* Error */
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  /* Background */
+  --color-background: #131313;
+
+  /* Fonts */
+  --font-display: 'Archivo Narrow', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'Geist', 'Inter', monospace;
+}
+
 html,
 body,
 #root {
   margin: 0;
   height: 100%;
   width: 100%;
-  background: #0f172a;
-  color: #e2e8f0;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background: #131313;
+  color: #e5e2e1;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #1c1b1b;
+}
+::-webkit-scrollbar-thumb {
+  background: #4d4635;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #99907c;
+}
+
+/* ── Sidebar nav item active state ── */
+.nav-item-active {
+  border-left: 3px solid #f2ca50;
+  background: rgba(242, 202, 80, 0.06);
+  color: #f2ca50;
+}
+
+/* ── Inputs: bottom-border style ── */
+.input-underline {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #4d4635;
+  border-radius: 0;
+  outline: none;
+  color: #e5e2e1;
+  transition: border-color 0.15s;
+}
+.input-underline:focus {
+  border-bottom-color: #f2ca50;
+}
+.input-underline::placeholder {
+  color: #4d4635;
+}
+
+/* ── Gold accent line (header decoration) ── */
+.accent-bar {
+  height: 2px;
+  width: 40px;
+  background: #f2ca50;
+}
+
+/* ── Slide section pill ── */
+.section-pill-live {
+  background: rgba(242, 202, 80, 0.15);
+  border: 1px solid rgba(242, 202, 80, 0.5);
+  color: #f2ca50;
+}
+.section-pill-preview {
+  background: rgba(242, 202, 80, 0.08);
+  border: 1px solid rgba(242, 202, 80, 0.25);
+  color: #d0c5af;
+}
+.section-pill-default {
+  background: #201f1f;
+  border: 1px solid #4d4635;
+  color: #99907c;
+}
+
+/* ── Modal backdrop ── */
+.modal-backdrop {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(13, 13, 13, 0.75);
+}
+
+/* ── Status badge pulse ── */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.live-pulse {
+  animation: live-pulse 1.5s ease-in-out infinite;
 }

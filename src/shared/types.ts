@@ -162,6 +162,24 @@ export interface BibleSlideContent {
   versionAbreviatura: string
 }
 
+export interface ImportBibleResult {
+  imported: number
+  versionId: string
+  nombre: string
+  abreviatura: string
+}
+
+export interface CloudBible {
+  id: string
+  nombre: string
+  abreviatura: string
+  idioma: string
+  tamano_kb: number
+  votos_netos: number
+  estado: 'pendiente' | 'aprobada' | 'rechazada'
+  subida_por: string | null
+}
+
 // ─────────────────────────────────────────────────────────────
 // Proyección
 // ─────────────────────────────────────────────────────────────
@@ -182,6 +200,20 @@ export interface ProjectionPayload {
   song?: SongSlideContent
   bible?: BibleSlideContent
   announcement?: AnnouncementSlideContent
+}
+
+// ─────────────────────────────────────────────────────────────
+// Fondos de diapositivas
+// ─────────────────────────────────────────────────────────────
+
+export interface SolidBackground    { type: 'color';    color: string }
+export interface ImageBackground    { type: 'image';    imagePath: string; overlayOpacity: number }
+export interface GradientBackground { type: 'gradient'; colorFrom: string; colorTo: string; direction: 'to-b' | 'to-r' | 'to-br' | 'to-tr' }
+export type SlideBackground = SolidBackground | ImageBackground | GradientBackground
+
+export interface BackgroundConfig {
+  song:  SlideBackground
+  bible: SlideBackground
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -238,6 +270,36 @@ export interface SyncStatus {
   pendingOutbox: number
 }
 
+export interface CommunitySongStatus {
+  id: string
+  titulo: string
+  estado: 'pendiente' | 'aprobada' | 'rechazada'
+}
+
+export interface BulkSyncResult {
+  downloaded: number
+  skipped: number
+  errors: number
+}
+
+export interface BulkUploadResult {
+  uploaded: number
+  skipped: number
+  errors: number
+}
+
+export interface SongVersion {
+  id: string
+  song_id: string
+  version_num: number
+  titulo: string
+  autor: string | null
+  tags: string | null
+  hash: string
+  guardado_por: string | null
+  creado_en: string
+}
+
 // ─────────────────────────────────────────────────────────────
 // Resultado estándar de IPC (envoltorio uniforme de errores)
 // ─────────────────────────────────────────────────────────────
@@ -258,6 +320,11 @@ export interface ControlApi {
   theme: {
     set: (themeId: ThemeId) => Promise<IpcResult<void>>
   }
+  background: {
+    get:       () => Promise<IpcResult<BackgroundConfig>>
+    set:       (config: BackgroundConfig) => Promise<IpcResult<void>>
+    pickImage: (contentType: 'song' | 'bible') => Promise<IpcResult<string | null>>
+  }
   updater: {
     onUpdateAvailable: (cb: () => void) => () => void
     onUpdateDownloaded: (cb: () => void) => () => void
@@ -271,11 +338,23 @@ export interface ControlApi {
   }
   sync: {
     listCatalog: (search?: string, page?: number) => Promise<IpcResult<CloudSong[]>>
+    listPendingSongs: (search?: string, page?: number) => Promise<IpcResult<CloudSong[]>>
+    listMySongs: (page?: number) => Promise<IpcResult<CloudSong[]>>
+    fetchSongPreview: (cloudSongId: string) => Promise<IpcResult<SectionInput[]>>
+    getSongVersions: (songId: string) => Promise<IpcResult<SongVersion[]>>
+    restoreVersion: (songId: string, versionId: string) => Promise<IpcResult<CloudSong>>
     downloadSong: (cloudSongId: string) => Promise<IpcResult<DownloadResult>>
     resolveConflict: (cloudSongId: string, strategy: ConflictStrategy) => Promise<IpcResult<void>>
     uploadSong: (localSongId: string) => Promise<IpcResult<CloudSong>>
     voteSong: (cloudSongId: string) => Promise<IpcResult<{ votos_netos: number }>>
     flushOutbox: () => Promise<IpcResult<{ flushed: number }>>
+    getCommunityStatus: () => Promise<IpcResult<CommunitySongStatus[]>>
+    bulkDownload: () => Promise<IpcResult<BulkSyncResult>>
+    bulkUpload: () => Promise<IpcResult<BulkUploadResult>>
+    listBibleCatalog: (search?: string, page?: number) => Promise<IpcResult<CloudBible[]>>
+    downloadBible: (bibleId: string) => Promise<IpcResult<'imported' | 'already_up_to_date'>>
+    uploadBible: (versionId: string) => Promise<IpcResult<CloudBible>>
+    voteBible: (bibleId: string) => Promise<IpcResult<{ votos_netos: number }>>
   }
   announcements: {
     list: () => Promise<IpcResult<Announcement[]>>
@@ -311,17 +390,37 @@ export interface ControlApi {
     ) => Promise<IpcResult<BibleVerse[]>>
     search: (query: string, versionId: string) => Promise<IpcResult<BibleSearchResult[]>>
     parseReference: (input: string) => Promise<IpcResult<ParsedReference>>
+    importLocalFile: () => Promise<IpcResult<ImportBibleResult | null>>
   }
   projection: {
     send: (payload: ProjectionPayload) => Promise<IpcResult<void>>
     black: () => Promise<IpcResult<void>>
     logo: () => Promise<IpcResult<void>>
   }
+  display: {
+    list: () => Promise<DisplayInfo[]>
+    select: (id: number) => Promise<void>
+  }
+  shell: {
+    openExternal: (url: string) => Promise<void>
+  }
+}
+
+export interface DisplayInfo {
+  id: number
+  label: string
+  bounds: { x: number; y: number; width: number; height: number }
+  isPrimary: boolean
+  isSelected: boolean
 }
 
 export interface OutputApi {
-  onProjectionUpdate: (callback: (payload: ProjectionPayload) => void) => () => void
-  onThemeChange: (callback: (themeId: ThemeId) => void) => () => void
+  onProjectionUpdate:   (callback: (payload: ProjectionPayload) => void) => () => void
+  onThemeChange:        (callback: (themeId: ThemeId) => void) => () => void
+  onBackgroundChange:   (callback: (config: BackgroundConfig) => void) => () => void
+  background: {
+    get: () => Promise<IpcResult<BackgroundConfig>>
+  }
 }
 
 export interface ControlWindowApi extends ControlApi {

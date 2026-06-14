@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '../lib/api'
+import { useHistoryStore } from './historyStore'
 import type {
   AnnouncementSlideContent,
   BibleSlideContent,
@@ -9,14 +10,14 @@ import type {
 } from '@shared/types'
 
 interface ProjectionState {
-  // Previsualización de canciones (no va al proyector hasta "En Vivo")
   previewSong: SongWithSections | null
   previewSection: number
 
-  // En vivo
   liveMode: ProjectionMode
   liveSongId: string | null
   liveSection: number
+  liveLabel: string | null
+  liveBible: BibleSlideContent | null
 
   setPreviewSong: (song: SongWithSections) => void
   setPreviewSection: (index: number) => void
@@ -53,6 +54,8 @@ export const useProjectionStore = create<ProjectionState>((set, get) => ({
   liveMode: 'black',
   liveSongId: null,
   liveSection: 0,
+  liveLabel: null,
+  liveBible: null,
 
   setPreviewSong: (song) => set({ previewSong: song, previewSection: 0 }),
 
@@ -61,11 +64,16 @@ export const useProjectionStore = create<ProjectionState>((set, get) => ({
   goLive: () => {
     const { previewSong, previewSection } = get()
     if (!previewSong) return
+    const section = previewSong.sections[previewSection]
     api.projection.send(buildSongPayload(previewSong, previewSection))
+    const label = section?.etiqueta
+      ? `${previewSong.titulo} — ${section.etiqueta}`
+      : previewSong.titulo
     set({
       liveMode: 'song',
       liveSongId: previewSong.id,
-      liveSection: previewSection
+      liveSection: previewSection,
+      liveLabel: label
     })
   },
 
@@ -74,8 +82,12 @@ export const useProjectionStore = create<ProjectionState>((set, get) => ({
     if (!previewSong || previewSong.id !== liveSongId) return
     const next = Math.min(liveSection + 1, previewSong.sections.length - 1)
     if (next === liveSection) return
+    const section = previewSong.sections[next]
     api.projection.send(buildSongPayload(previewSong, next))
-    set({ liveSection: next, previewSection: next })
+    const label = section?.etiqueta
+      ? `${previewSong.titulo} — ${section.etiqueta}`
+      : previewSong.titulo
+    set({ liveSection: next, previewSection: next, liveLabel: label })
   },
 
   liveSection_prev: () => {
@@ -83,29 +95,34 @@ export const useProjectionStore = create<ProjectionState>((set, get) => ({
     if (!previewSong || previewSong.id !== liveSongId) return
     const prev = Math.max(liveSection - 1, 0)
     if (prev === liveSection) return
+    const section = previewSong.sections[prev]
     api.projection.send(buildSongPayload(previewSong, prev))
-    set({ liveSection: prev, previewSection: prev })
+    const label = section?.etiqueta
+      ? `${previewSong.titulo} — ${section.etiqueta}`
+      : previewSong.titulo
+    set({ liveSection: prev, previewSection: prev, liveLabel: label })
   },
 
   sendBible: (content: BibleSlideContent) => {
     const payload: ProjectionPayload = { mode: 'bible', bible: content }
     api.projection.send(payload)
-    set({ liveMode: 'bible', liveSongId: null })
+    useHistoryStore.getState().pushBible({ label: content.referencia })
+    set({ liveMode: 'bible', liveSongId: null, liveLabel: content.referencia, liveBible: content })
   },
 
   sendAnnouncement: (content: AnnouncementSlideContent) => {
     const payload: ProjectionPayload = { mode: 'announcement', announcement: content }
     api.projection.send(payload)
-    set({ liveMode: 'announcement', liveSongId: null })
+    set({ liveMode: 'announcement', liveSongId: null, liveLabel: content.titulo })
   },
 
   black: () => {
     api.projection.black()
-    set({ liveMode: 'black' })
+    set({ liveMode: 'black', liveLabel: null, liveBible: null })
   },
 
   logo: () => {
     api.projection.logo()
-    set({ liveMode: 'logo' })
+    set({ liveMode: 'logo', liveLabel: 'Logo', liveBible: null })
   }
 }))

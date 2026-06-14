@@ -1,11 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { Channels } from '@shared/channels'
 import type {
+  BackgroundConfig,
   ControlWindowApi,
   ConflictStrategy,
   CreateAnnouncementInput,
   UpdateAnnouncementInput,
   CreateSongInput,
+  DisplayInfo,
+  IpcResult,
   ListSongsOptions,
   ParsedReference,
   ProjectionPayload,
@@ -21,6 +24,11 @@ const api: ControlWindowApi = {
   },
   theme: {
     set: (themeId: ThemeId) => ipcRenderer.invoke(Channels.theme.set, themeId)
+  },
+  background: {
+    get:       (): Promise<IpcResult<BackgroundConfig>> => ipcRenderer.invoke(Channels.background.get),
+    set:       (config: BackgroundConfig): Promise<IpcResult<void>> => ipcRenderer.invoke(Channels.background.set, config),
+    pickImage: (contentType: 'song' | 'bible'): Promise<IpcResult<string | null>> => ipcRenderer.invoke(Channels.background.pickImage, contentType)
   },
   updater: {
     onUpdateAvailable: (cb: () => void) => {
@@ -51,6 +59,16 @@ const api: ControlWindowApi = {
   sync: {
     listCatalog: (search?: string, page?: number) =>
       ipcRenderer.invoke(Channels.sync.listCatalog, search, page),
+    listPendingSongs: (search?: string, page?: number) =>
+      ipcRenderer.invoke(Channels.sync.listPendingSongs, search, page),
+    listMySongs: (page?: number) =>
+      ipcRenderer.invoke(Channels.sync.listMySongs, page),
+    fetchSongPreview: (cloudSongId: string) =>
+      ipcRenderer.invoke(Channels.sync.fetchSongPreview, cloudSongId),
+    getSongVersions: (songId: string) =>
+      ipcRenderer.invoke(Channels.sync.getSongVersions, songId),
+    restoreVersion: (songId: string, versionId: string) =>
+      ipcRenderer.invoke(Channels.sync.restoreVersion, songId, versionId),
     downloadSong: (cloudSongId: string) =>
       ipcRenderer.invoke(Channels.sync.downloadSong, cloudSongId),
     resolveConflict: (cloudSongId: string, strategy: ConflictStrategy) =>
@@ -59,7 +77,18 @@ const api: ControlWindowApi = {
       ipcRenderer.invoke(Channels.sync.uploadSong, localSongId),
     voteSong: (cloudSongId: string) =>
       ipcRenderer.invoke(Channels.sync.voteSong, cloudSongId),
-    flushOutbox: () => ipcRenderer.invoke(Channels.sync.flushOutbox)
+    flushOutbox: () => ipcRenderer.invoke(Channels.sync.flushOutbox),
+    getCommunityStatus: () => ipcRenderer.invoke(Channels.sync.getCommunityStatus),
+    bulkDownload: () => ipcRenderer.invoke(Channels.sync.bulkDownload),
+    bulkUpload: () => ipcRenderer.invoke(Channels.sync.bulkUpload),
+    listBibleCatalog: (search?: string, page?: number) =>
+      ipcRenderer.invoke(Channels.sync.listBibleCatalog, search, page),
+    downloadBible: (bibleId: string) =>
+      ipcRenderer.invoke(Channels.sync.downloadBible, bibleId),
+    uploadBible: (versionId: string) =>
+      ipcRenderer.invoke(Channels.sync.uploadBible, versionId),
+    voteBible: (bibleId: string) =>
+      ipcRenderer.invoke(Channels.sync.voteBible, bibleId)
   },
   announcements: {
     list: () => ipcRenderer.invoke(Channels.announcements.list),
@@ -81,7 +110,8 @@ const api: ControlWindowApi = {
     search: (query: string, versionId: string) =>
       ipcRenderer.invoke(Channels.bible.search, query, versionId),
     parseReference: (input: string) =>
-      ipcRenderer.invoke(Channels.bible.parseReference, input)
+      ipcRenderer.invoke(Channels.bible.parseReference, input),
+    importLocalFile: () => ipcRenderer.invoke(Channels.bible.importLocalFile)
   },
   songs: {
     list: (opts?: ListSongsOptions) =>
@@ -101,6 +131,13 @@ const api: ControlWindowApi = {
       ipcRenderer.invoke(Channels.projection.send, payload),
     black: () => ipcRenderer.invoke(Channels.projection.black),
     logo: () => ipcRenderer.invoke(Channels.projection.logo)
+  },
+  display: {
+    list: (): Promise<DisplayInfo[]> => ipcRenderer.invoke(Channels.display.list),
+    select: (id: number): Promise<void> => ipcRenderer.invoke(Channels.display.select, id)
+  },
+  shell: {
+    openExternal: (url: string): Promise<void> => ipcRenderer.invoke(Channels.shell.openExternal, url)
   }
 }
 

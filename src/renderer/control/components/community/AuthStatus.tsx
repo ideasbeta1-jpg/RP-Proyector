@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { LogIn, LogOut, RefreshCw } from 'lucide-react'
 import { api } from '../../lib/api'
 import type { SyncStatus } from '@shared/types'
@@ -6,9 +6,10 @@ import type { SyncStatus } from '@shared/types'
 interface Props {
   onLoginClick: () => void
   onStatusChange?: (status: SyncStatus) => void
+  compact?: boolean
 }
 
-export default function AuthStatus({ onLoginClick, onStatusChange }: Props): React.JSX.Element {
+export default function AuthStatus({ onLoginClick, onStatusChange, compact = false }: Props): React.JSX.Element {
   const [status, setStatus] = useState<SyncStatus | null>(null)
   const [flushing, setFlushing] = useState(false)
 
@@ -34,17 +35,56 @@ export default function AuthStatus({ onLoginClick, onStatusChange }: Props): Rea
     refresh()
   }
 
-  if (!status) return <div className="h-6 w-24 animate-pulse rounded bg-slate-800" />
+  if (!status) {
+    return (
+      <div className="h-6 w-6 animate-pulse rounded-full bg-surface-container-high" />
+    )
+  }
 
   if (!status.authenticated) {
+    if (compact) {
+      return (
+        <button
+          onClick={onLoginClick}
+          title="Conectar comunidad"
+          className="flex size-7 items-center justify-center text-outline transition-colors hover:text-primary"
+        >
+          <LogIn className="size-4" />
+        </button>
+      )
+    }
     return (
       <button
         onClick={onLoginClick}
-        className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+        className="flex items-center gap-1.5 px-2 py-1 font-label text-[10px] uppercase tracking-wider text-outline transition-colors hover:text-primary"
       >
         <LogIn className="size-3.5" />
-        Conectar comunidad
+        Conectar
       </button>
+    )
+  }
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1">
+        {status.pendingOutbox > 0 && (
+          <button
+            onClick={handleFlush}
+            disabled={flushing}
+            title={`${status.pendingOutbox} cambios pendientes`}
+            className="flex size-7 items-center justify-center text-primary/70 transition-colors hover:text-primary"
+          >
+            <RefreshCw className={`size-3.5 ${flushing ? 'animate-spin' : ''}`} />
+          </button>
+        )}
+        <button
+          onClick={handleLogout}
+          title={`Cerrar sesión (${status.user?.nombreIglesia || status.user?.email})`}
+          className="flex size-7 items-center justify-center text-outline transition-colors hover:text-error"
+        >
+          <LogOut className="size-3.5" />
+        </button>
+      </div>
     )
   }
 
@@ -55,18 +95,21 @@ export default function AuthStatus({ onLoginClick, onStatusChange }: Props): Rea
           onClick={handleFlush}
           disabled={flushing}
           title={`${status.pendingOutbox} cambios pendientes de sincronizar`}
-          className="flex items-center gap-1 rounded bg-amber-900/50 px-2 py-0.5 text-xs text-amber-300 hover:bg-amber-900"
+          className="flex items-center gap-1 border border-primary/30 bg-primary/10 px-2 py-0.5 font-label text-[10px] uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
         >
           <RefreshCw className={`size-3 ${flushing ? 'animate-spin' : ''}`} />
           {status.pendingOutbox}
         </button>
       )}
-      <span className="max-w-[120px] truncate text-xs text-slate-400" title={status.user?.email}>
+      <span
+        className="max-w-[120px] truncate font-label text-[10px] uppercase tracking-wider text-on-surface-variant"
+        title={status.user?.email}
+      >
         {status.user?.nombreIglesia || status.user?.email}
       </span>
       <button
         onClick={handleLogout}
-        className="text-slate-500 hover:text-red-400"
+        className="text-outline transition-colors hover:text-error"
         title="Cerrar sesión"
       >
         <LogOut className="size-3.5" />

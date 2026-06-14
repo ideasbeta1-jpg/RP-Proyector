@@ -36,14 +36,22 @@
 | Búsqueda por texto completo (FTS5) con soporte de tildes | ✅ Fase 1 |
 | Doble ventana: Operador (monitor 1) + Proyector (monitor 2) | ✅ Fase 1 |
 | Pantalla negra / logo entre diapositivas | ✅ Fase 1 |
+| Atajos de teclado globales (F5/F6/F7/F8/Esc) | ✅ Fase 1 |
 | Módulo Biblia: referencia y búsqueda por contenido | ✅ Fase 2 |
-| Versión RV1909 incluida sin necesidad de internet | ✅ Fase 2 |
+| Versión RV1909 incluida sin internet | ✅ Fase 2 |
+| Importar Biblia desde archivo local | ✅ Fase 2 |
 | Anuncios con imágenes y programación por fechas | ✅ Fase 3 |
 | Rotación automática de anuncios | ✅ Fase 3 |
+| Fondos configurables: color, imagen, gradiente | ✅ Fase 3 |
+| Selector de monitor desde la UI (sin reiniciar) | ✅ Fase 3 |
+| Respaldo / restaurar base de datos | ✅ Fase 3 |
+| Actualizaciones automáticas (electron-updater) | ✅ Fase 3 |
 | Sincronización con catálogo comunitario en la nube | 🚧 Fase 4 |
+| Descarga de Biblias adicionales (RVR1960, LBLA, RVC…) | 🚧 Fase 4 |
 | Moderación de canciones por votación | 🚧 Fase 4 |
+| Historial de versiones de canciones | 🚧 Fase 4 |
 | Instalador Windows (.exe) y versión portable | 📋 Fase 5 |
-| Actualizaciones automáticas | 📋 Fase 5 |
+| Firma de código (SmartScreen) | 📋 Fase 5 |
 
 ---
 
@@ -155,7 +163,8 @@ La primera vez que ejecutas la app:
 rp-proyector/
 ├── resources/
 │   └── bible/
-│       └── rv1909.json          # Biblia completa (Reina-Valera 1909) — ~4 MB
+│       └── rv1909.json          # Reina-Valera 1909 (dominio público) — ~4 MB
+│       (LBLA, RVR1960, RVC no se distribuyen en el repo — se descargan desde la comunidad)
 │
 ├── src/
 │   ├── main/                    # Proceso principal de Electron (Node.js)
@@ -172,17 +181,24 @@ rp-proyector/
 │   │   │   ├── projection.ts    # Reenvía el "en vivo" a la ventana de salida
 │   │   │   ├── auth.ts          # Login/registro con Supabase
 │   │   │   ├── sync.ts          # Sincronización con catálogo en la nube
+│   │   │   ├── backup.ts        # Exportar / importar base de datos
+│   │   │   ├── theme.ts         # Cambio de tema
+│   │   │   ├── display.ts       # Selección de monitor de salida
+│   │   │   ├── background.ts    # Fondos de diapositiva
 │   │   │   └── ipcResult.ts     # Wrapper uniforme: { success, data } | { success, error }
 │   │   └── services/            # Lógica de negocio
 │   │       ├── songService.ts
 │   │       ├── bibleService.ts
-│   │       ├── bibleImportService.ts
+│   │       ├── bibleImportService.ts  # Importa Biblias locales y predefinidas
+│   │       ├── bibleSyncService.ts    # Sube/descarga Biblias vía Supabase Storage
 │   │       ├── bibleBooks.ts    # Metadatos de los 66 libros
 │   │       ├── announcementService.ts
 │   │       ├── ftsService.ts    # Indexación FTS5
 │   │       ├── hashService.ts   # SHA-256 para canciones
 │   │       ├── authService.ts
 │   │       ├── syncService.ts
+│   │       ├── backgroundService.ts   # Lee/guarda background-config.json
+│   │       ├── displayPreference.ts   # Lee/guarda display-preference.json
 │   │       └── supabaseClient.ts
 │   │
 │   ├── preload/
@@ -194,17 +210,23 @@ rp-proyector/
 │   │   │   ├── main.tsx         # Punto de entrada React
 │   │   │   ├── App.tsx          # Layout con tabs: Canciones / Biblia / Anuncios / Comunidad
 │   │   │   ├── components/
-│   │   │   │   ├── songs/       # SongList, SongEditor
-│   │   │   │   ├── bible/       # BiblePanel, ReferenceInput, VerseList, VersionSelector
+│   │   │   │   ├── songs/       # SongList, SongEditor, SongContentPanel
+│   │   │   │   ├── bible/       # BiblePanel, ReferenceInput, VerseList, VersionSelector,
+│   │   │   │   │               #   BookBrowser, VerseSearch
 │   │   │   │   ├── announcements/  # AnnouncementsPanel, AnnouncementList, AnnouncementEditor
-│   │   │   │   ├── projection/  # SectionNavigator, SlidePreview, ProjectionControls
-│   │   │   │   └── community/   # AuthModal, AuthStatus, CommunityPanel, ConflictModal
+│   │   │   │   ├── projection/  # SectionNavigator, SlidePreview, ProjectionControls, RightPanel
+│   │   │   │   ├── community/   # AuthModal, AuthStatus, CommunityPanel, ConflictModal
+│   │   │   │   ├── settings/    # SettingsPanel (fondos, tema, display, backup)
+│   │   │   │   ├── layout/      # Componentes de layout (cabeceras, paneles)
+│   │   │   │   ├── contact/     # Sección de contacto/soporte
+│   │   │   │   └── ui/          # Componentes reutilizables (botones, modales, inputs)
 │   │   │   ├── hooks/
 │   │   │   │   ├── useKeyboardShortcuts.ts
 │   │   │   │   └── useAnnouncementRotation.ts
 │   │   │   ├── store/
 │   │   │   │   ├── projectionStore.ts  # Zustand: preview, en-vivo, navegación
-│   │   │   │   └── songsStore.ts       # Zustand: lista y resultados de búsqueda
+│   │   │   │   ├── songsStore.ts       # Zustand: lista y resultados de búsqueda
+│   │   │   │   └── historyStore.ts     # Zustand: historial de navegación
 │   │   │   └── lib/
 │   │   │       ├── api.ts       # Helpers para llamar window.api
 │   │   │       └── sections.ts  # Utilidades para secciones de canciones
@@ -323,12 +345,20 @@ Main (projection handler)          Output window (preload)
 | Grupo | Canales |
 |---|---|
 | Canciones | `songs:list`, `songs:get`, `songs:create`, `songs:update`, `songs:delete`, `songs:search`, `songs:reorder-sections` |
-| Biblia | `bible:list-versions`, `bible:list-books`, `bible:get-chapter`, `bible:get-reference`, `bible:search`, `bible:parse-reference` |
+| Biblia | `bible:list-versions`, `bible:list-books`, `bible:get-chapter`, `bible:get-reference`, `bible:search`, `bible:parse-reference`, `bible:import-local-file` |
 | Anuncios | `announcements:list`, `announcements:get`, `announcements:create`, `announcements:update`, `announcements:delete`, `announcements:pick-image` |
 | Proyección | `projection:send`, `projection:black`, `projection:logo` |
+| Fondos | `background:get`, `background:set`, `background:pick-image` |
+| Display | `display:list`, `display:select` |
+| Backup | `backup:export`, `backup:import` |
+| Tema | `theme:set` |
+| Shell | `shell:open-external` |
 | Auth | `auth:login`, `auth:register`, `auth:logout`, `auth:status` |
-| Sync | `sync:list-catalog`, `sync:download-song`, `sync:upload-song`, `sync:vote-song`, `sync:flush-outbox` |
-| Evento push | `projection:update` _(main → output)_ |
+| Sync canciones | `sync:list-catalog`, `sync:list-pending-songs`, `sync:list-my-songs`, `sync:fetch-song-preview`, `sync:get-song-versions`, `sync:restore-version`, `sync:download-song`, `sync:resolve-conflict`, `sync:upload-song`, `sync:vote-song`, `sync:flush-outbox`, `sync:get-community-status`, `sync:bulk-download`, `sync:bulk-upload` |
+| Sync Biblias | `sync:list-bible-catalog`, `sync:download-bible`, `sync:upload-bible`, `sync:vote-bible` |
+| Eventos push | `projection:update`, `shortcut:action`, `theme:change`, `background:change`, `updater:available`, `updater:downloaded` |
+
+Ver la referencia completa en [docs/ipc.md](docs/ipc.md).
 
 ---
 
@@ -347,24 +377,30 @@ Main (projection handler)          Output window (preload)
 - Búsqueda temática por contenido con FTS5
 - Selector de versiones; Reina-Valera 1909 incluida
 
-### ✅ Fase 3 — Anuncios / eventos
-- CRUD de anuncios con imagen
-- Programación por fechas (`mostrar_desde` / `mostrar_hasta`)
+### ✅ Fase 3 — Anuncios, fondos y configuración avanzada
+- CRUD de anuncios con imágenes y programación por fechas (`mostrar_desde` / `mostrar_hasta`)
 - Rotación automática antes/después del culto
+- Fondos de diapositiva configurables: color sólido, imagen o gradiente (independiente por tipo)
+- Selector de monitor de salida desde la UI (aplica en caliente, sin reiniciar)
+- Protocolo `app-asset:///` para servir imágenes desde `userData/` a los renderers
+- Respaldo y restauración de la base de datos
+- Actualizaciones automáticas integradas (`electron-updater`, solo en producción)
+- Instancia única: segunda instancia da el foco a la ya existente
 
 ### 🚧 Fase 4 — Sincronización offline-first + comunidad
-- API REST (Node + Supabase/Postgres) con catálogo compartido
+- Integración Supabase: auth, catálogo de canciones y de Biblias
 - Cola de salida (`outbox`) + botón **"Sincronizar ahora"**
-- Panel de descarga selectiva de canciones y versiones de la Biblia
-- Cuentas de usuario, votación y propuestas de corrección de letras
-- Historial de cambios y resolución de conflictos
+- Descarga selectiva de canciones y Biblias (RVR1960, LBLA, RVC…) vía Supabase Storage
+- Votación de canciones y Biblias (`votos_netos`)
+- Historial de versiones de canciones + restauración de versiones anteriores
+- Bulk download / bulk upload
+- Resolución de conflictos: conservar local / usar nube / duplicar
+- Descarga automática de Biblias predefinidas al arrancar (en background)
 
 ### 📋 Fase 5 — Distribución y pulido
 - Empaquetado con `electron-builder` (instalador NSIS + portable)
-- Actualizaciones automáticas con `electron-updater`
-- Atajos de teclado configurables
-- Exportar / importar base de datos (respaldo)
 - Firma de código (SmartScreen)
+- Atajos de teclado configurables por el usuario
 
 ---
 

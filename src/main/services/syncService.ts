@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import type Database from 'better-sqlite3'
 import { getSupabase } from './supabaseClient'
 import { hashSong } from './hashService'
-import type { CloudSong, CloudSongWithSections, ConflictStrategy, DownloadResult, SectionInput, SectionType } from '@shared/types'
+import type { BulkSyncResult, BulkUploadResult, CloudSong, CloudSongWithSections, CommunitySongStatus, ConflictStrategy, DownloadResult, SectionInput, SectionType, SongVersion } from '@shared/types'
 
 const PAGE_SIZE = 50
 
@@ -25,6 +25,136 @@ export async function listCatalog(search = '', page = 0): Promise<CloudSong[]> {
   const { data, error } = await query
   if (error) throw new Error(error.message)
   return (data ?? []) as CloudSong[]
+}
+
+export async function listPendingSongs(search = '', page = 0): Promise<CloudSong[]> {
+  const supabase = getSupabase()
+
+  let query = supabase
+    .from('community_songs')
+    .select('id,titulo,autor,tags,hash,votos_netos,estado,subida_por')
+    .eq('estado', 'pendiente')
+    .order('votos_netos', { ascending: false })
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+
+  if (search.trim()) {
+    query = query.ilike('titulo', `%${search.trim()}%`)
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+  return (data ?? []) as CloudSong[]
+}
+
+export async function listMySongs(page = 0): Promise<CloudSong[]> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase
+    .from('community_songs')
+    .select('id,titulo,autor,tags,hash,votos_netos,estado,subida_por')
+    .eq('subida_por', user.id)
+    .order('creado_en', { ascending: false })
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as CloudSong[]
+}
+
+export async function fetchSongPreview(cloudSongId: string): Promise<SectionInput[]> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('community_song_sections')
+    .select('orden,tipo,etiqueta,texto')
+    .eq('song_id', cloudSongId)
+    .order('orden')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as SectionInput[]
+}
+
+export async function getSongVersions(songId: string): Promise<SongVersion[]> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('song_versions')
+    .select('id,song_id,version_num,titulo,autor,tags,hash,guardado_por,creado_en')
+    .eq('song_id', songId)
+    .order('version_num', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as SongVersion[]
+}
+
+export async function restoreVersion(songId: string, versionId: string): Promise<CloudSong> {
+  const supabase = getSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Debes iniciar sesión para restaurar versiones')
+
+  // Obtener versión a restaurar con sus secciones
+  const { data: version, error: ve } = await supabase
+    .from('song_versions')
+    .select('id,titulo,autor,tags,hash')
+    .eq('id', versionId)
+    .single()
+  if (ve || !version) throw new Error(ve?.message ?? 'Versión no encontrada')
+
+  const { data: versionSections } = await supabase
+    .from('song_version_sections')
+    .select('orden,tipo,etiqueta,texto')
+    .eq('version_id', versionId)
+    .order('orden')
+
+  // Guardar el estado actual como nueva versión antes de restaurar
+  const { data: current } = await supabase
+    .from('community_songs')
+    .select('titulo,autor,tags,hash')
+    .eq('id', songId)
+    .single()
+
+  if (current) {
+    const { data: currentSections } = await supabase
+      .from('community_song_sections')
+      .select('orden,tipo,etiqueta,texto')
+      .eq('song_id', songId)
+      .order('orden')
+
+    const { data: maxVer } = await supabase
+      .from('song_versions')
+      .select('version_num')
+      .eq('song_id', songId)
+      .order('version_num', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const nextNum = (maxVer?.version_num ?? 0) + 1
+    const { data: savedVer } = await supabase
+      .from('song_versions')
+      .insert({ song_id: songId, version_num: nextNum, titulo: current.titulo, autor: current.autor, tags: current.tags, hash: current.hash, guardado_por: user.id })
+      .select('id')
+      .single()
+
+    if (savedVer && currentSections && currentSections.length > 0) {
+      await supabase.from('song_version_sections').insert(
+        currentSections.map((s) => ({ version_id: savedVer.id, ...s }))
+      )
+    }
+  }
+
+  // Aplicar la versión restaurada
+  const { data: updated, error: ue } = await supabase
+    .from('community_songs')
+    .update({ titulo: version.titulo, autor: version.autor, tags: version.tags, hash: version.hash, modificado_en: new Date().toISOString() })
+    .eq('id', songId)
+    .select()
+    .single()
+  if (ue) throw new Error(ue.message)
+
+  await supabase.from('community_song_sections').delete().eq('song_id', songId)
+  const sections = versionSections ?? []
+  if (sections.length > 0) {
+    await supabase.from('community_song_sections').insert(
+      sections.map((s) => ({ song_id: songId, ...s }))
+    )
+  }
+
+  return updated as CloudSong
 }
 
 // ── Descarga ──────────────────────────────────────────────────
@@ -145,7 +275,43 @@ export async function uploadSong(db: Database.Database, localSongId: string): Pr
 
   const hash = hashSong(song.titulo, sections)
 
-  // Upsert en community_songs
+  // Si la canción ya existe en la nube y está aprobada, guardar la versión actual antes de actualizar
+  const { data: existing } = await supabase
+    .from('community_songs')
+    .select('id,estado,titulo,autor,tags,hash')
+    .eq('id', song.id)
+    .maybeSingle()
+
+  if (existing?.estado === 'aprobada') {
+    const { data: existingSections } = await supabase
+      .from('community_song_sections')
+      .select('orden,tipo,etiqueta,texto')
+      .eq('song_id', song.id)
+      .order('orden')
+
+    const { data: maxVer } = await supabase
+      .from('song_versions')
+      .select('version_num')
+      .eq('song_id', song.id)
+      .order('version_num', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const nextNum = (maxVer?.version_num ?? 0) + 1
+    const { data: savedVer } = await supabase
+      .from('song_versions')
+      .insert({ song_id: song.id, version_num: nextNum, titulo: existing.titulo, autor: existing.autor, tags: existing.tags, hash: existing.hash, guardado_por: user.id })
+      .select('id')
+      .single()
+
+    if (savedVer && existingSections && existingSections.length > 0) {
+      await supabase.from('song_version_sections').insert(
+        existingSections.map((s) => ({ version_id: savedVer.id, ...s }))
+      )
+    }
+  }
+
+  // Upsert en community_songs (el estado se preserva si ya existe; 'pendiente' para canciones nuevas)
   const { data: cloudSong, error: se } = await supabase
     .from('community_songs')
     .upsert(
@@ -210,6 +376,77 @@ export async function voteSong(cloudSongId: string): Promise<{ votos_netos: numb
   return { votos_netos: (updated?.votos_netos ?? 0) as number }
 }
 
+// ── Estado de canciones en la comunidad ──────────────────────
+
+export async function getCommunityStatus(): Promise<CommunitySongStatus[]> {
+  const supabase = getSupabase()
+  const all: CommunitySongStatus[] = []
+  const BATCH = 1000
+  let offset = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('community_songs')
+      .select('id,titulo,estado')
+      .range(offset, offset + BATCH - 1)
+    if (error) throw new Error(error.message)
+    all.push(...((data ?? []) as CommunitySongStatus[]))
+    if (!data || data.length < BATCH) break
+    offset += BATCH
+  }
+  return all
+}
+
+// ── Sincronización masiva ─────────────────────────────────────
+
+export async function bulkDownload(db: Database.Database): Promise<BulkSyncResult> {
+  let downloaded = 0, skipped = 0, errors = 0
+  let page = 0
+  let hasMore = true
+
+  while (hasMore) {
+    const songs = await listCatalog('', page)
+    if (songs.length < PAGE_SIZE) hasMore = false
+
+    for (const song of songs) {
+      const existing = db.prepare('SELECT id FROM songs WHERE id = ?').get(song.id)
+      if (existing) { skipped++; continue }
+      try {
+        const result = await downloadSong(db, song.id)
+        if (result.status === 'imported') downloaded++
+        else skipped++
+      } catch {
+        errors++
+      }
+    }
+    page++
+  }
+
+  return { downloaded, skipped, errors }
+}
+
+export async function bulkUpload(db: Database.Database): Promise<BulkUploadResult> {
+  const { data: { user } } = await getSupabase().auth.getUser()
+  if (!user) throw new Error('Debes iniciar sesión para sincronizar')
+
+  const localSongs = db.prepare('SELECT id FROM songs').all() as { id: string }[]
+  let uploaded = 0, skipped = 0, errors = 0
+
+  const cloudStatus = await getCommunityStatus()
+  const cloudIds = new Set(cloudStatus.map((s) => s.id))
+
+  for (const { id } of localSongs) {
+    if (cloudIds.has(id)) { skipped++; continue }
+    try {
+      await uploadSong(db, id)
+      uploaded++
+    } catch {
+      errors++
+    }
+  }
+
+  return { uploaded, skipped, errors }
+}
+
 // ── Outbox flush ──────────────────────────────────────────────
 
 export async function flushOutbox(db: Database.Database): Promise<{ flushed: number }> {
@@ -223,9 +460,10 @@ export async function flushOutbox(db: Database.Database): Promise<{ flushed: num
   let flushed = 0
   for (const entry of pending) {
     try {
-      if (entry.tipo === 'song_update' || entry.tipo === 'song_create') {
+      if (entry.tipo === 'nueva_cancion' || entry.tipo === 'edicion') {
         await uploadSong(db, entry.entidad_id)
       }
+      // 'borrado' y otros tipos se marcan como procesados sin acción en la nube
       db.prepare('UPDATE outbox SET enviado = 1 WHERE id = ?').run(entry.id)
       flushed++
     } catch {

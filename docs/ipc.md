@@ -118,14 +118,121 @@ type ProjectionPayload =
 
 ## Canales de Sincronización
 
+### Canciones
+
 | Canal | Dirección | Parámetros | Retorna |
 |---|---|---|---|
-| `sync:list-catalog` | renderer → main | — | `IpcResult<OnlineSong[]>` |
-| `sync:download-song` | renderer → main | `id: string` | `IpcResult<Song>` |
-| `sync:upload-song` | renderer → main | `id: string` | `IpcResult<void>` |
-| `sync:vote-song` | renderer → main | `id: string, valor: 1 \| -1` | `IpcResult<void>` |
-| `sync:flush-outbox` | renderer → main | — | `IpcResult<{ enviados: number }>` |
-| `sync:resolve-conflict` | renderer → main | `id: string, resolution: 'local' \| 'remote'` | `IpcResult<void>` |
+| `sync:list-catalog` | renderer → main | `search?: string, page?: number` | `IpcResult<CloudSong[]>` |
+| `sync:list-pending-songs` | renderer → main | `search?: string, page?: number` | `IpcResult<CloudSong[]>` |
+| `sync:list-my-songs` | renderer → main | `page?: number` | `IpcResult<CloudSong[]>` |
+| `sync:fetch-song-preview` | renderer → main | `cloudSongId: string` | `IpcResult<SectionInput[]>` |
+| `sync:get-song-versions` | renderer → main | `songId: string` | `IpcResult<SongVersion[]>` |
+| `sync:restore-version` | renderer → main | `songId, versionId` | `IpcResult<CloudSong>` |
+| `sync:download-song` | renderer → main | `cloudSongId: string` | `IpcResult<DownloadResult>` |
+| `sync:resolve-conflict` | renderer → main | `cloudSongId, strategy: ConflictStrategy` | `IpcResult<void>` |
+| `sync:upload-song` | renderer → main | `localSongId: string` | `IpcResult<CloudSong>` |
+| `sync:vote-song` | renderer → main | `cloudSongId: string` | `IpcResult<{ votos_netos: number }>` |
+| `sync:flush-outbox` | renderer → main | — | `IpcResult<{ flushed: number }>` |
+| `sync:get-community-status` | renderer → main | — | `IpcResult<CommunitySongStatus[]>` |
+| `sync:bulk-download` | renderer → main | — | `IpcResult<BulkSyncResult>` |
+| `sync:bulk-upload` | renderer → main | — | `IpcResult<BulkUploadResult>` |
+
+### Biblias (catálogo en la nube)
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `sync:list-bible-catalog` | renderer → main | `search?: string, page?: number` | `IpcResult<CloudBible[]>` |
+| `sync:download-bible` | renderer → main | `bibleId: string` | `IpcResult<'imported' \| 'already_up_to_date'>` |
+| `sync:upload-bible` | renderer → main | `versionId: string` | `IpcResult<CloudBible>` |
+| `sync:vote-bible` | renderer → main | `bibleId: string` | `IpcResult<{ votos_netos: number }>` |
+
+`ConflictStrategy`: `'keep_local'` | `'use_cloud'` | `'duplicate'`
+
+---
+
+## Canales de Fondos de diapositiva
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `background:get` | renderer → main | — | `IpcResult<BackgroundConfig>` |
+| `background:set` | renderer → main | `config: BackgroundConfig` | `IpcResult<void>` |
+| `background:pick-image` | renderer → main | `contentType: 'song' \| 'bible'` | `IpcResult<string \| null>` |
+
+`background:set` además envía `background:change` (push) a la ventana de salida para que actualice su fondo en tiempo real.
+
+`background:pick-image` abre el selector de archivo nativo, copia la imagen seleccionada a `{userData}/images/backgrounds/` y devuelve la URL `app-asset:///backgrounds/{nombre}`.
+
+### `BackgroundConfig`
+
+```typescript
+interface BackgroundConfig {
+  song:  SlideBackground
+  bible: SlideBackground
+}
+
+type SlideBackground =
+  | { type: 'color';    color: string }
+  | { type: 'image';    imagePath: string; overlayOpacity: number }
+  | { type: 'gradient'; colorFrom: string; colorTo: string; direction: 'to-b' | 'to-r' | 'to-br' | 'to-tr' }
+```
+
+---
+
+## Canales de Monitor / Display
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `display:list` | renderer → main | — | `DisplayInfo[]` |
+| `display:select` | renderer → main | `id: number` | `void` |
+
+`display:select` reposiciona la ventana de salida al monitor seleccionado en tiempo real, sin reiniciar la app. La preferencia se guarda en `{userData}/display-preference.json`.
+
+---
+
+## Canales de Respaldo (Backup)
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `backup:export` | renderer → main | — | `IpcResult<BackupResult>` |
+| `backup:import` | renderer → main | — | `IpcResult<void>` |
+
+`backup:export` abre el selector de carpeta nativo, copia `rpproyector.db` al destino y devuelve `{ path, sizeMb }`.
+`backup:import` abre el selector de archivo, reemplaza la base local y reinicia la app.
+
+---
+
+## Canales de Tema
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `theme:set` | renderer → main | `themeId: ThemeId` | `IpcResult<void>` |
+
+`ThemeId`: `'default'` | `'dark-gold'` | `'minimal'`
+
+Al cambiar el tema, el main envía `theme:change` (push) a la ventana de salida.
+
+---
+
+## Canal de Shell
+
+| Canal | Dirección | Parámetros | Retorna |
+|---|---|---|---|
+| `shell:open-external` | renderer → main | `url: string` | `void` |
+
+Solo permite URLs con esquema `http:` o `https:`. Protege contra la apertura accidental de rutas locales o protocolos no estándar.
+
+---
+
+## Eventos push extendidos (main → renderer)
+
+| Evento | Destino | Cuándo se envía |
+|---|---|---|
+| `projection:update` | output | Al proyectar contenido en vivo |
+| `shortcut:action` | control | Al pulsar F5/F6/F7/F8/Escape |
+| `theme:change` | output | Al cambiar el tema desde control |
+| `background:change` | output | Al guardar la configuración de fondos |
+| `updater:available` | control | Cuando hay una actualización disponible |
+| `updater:downloaded` | control | Cuando la actualización terminó de descargar |
 
 ---
 

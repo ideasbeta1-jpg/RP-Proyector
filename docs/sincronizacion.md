@@ -86,6 +86,37 @@ Igual que las canciones, pero el contenido es mucho más grande (miles de versí
 
 ---
 
+## Historial de versiones de canciones
+
+Cuando una canción aprobada se modifica, el servidor guarda la versión anterior. Los canales `sync:get-song-versions` y `sync:restore-version` permiten al usuario ver el historial y revertir a una versión anterior sin perder información.
+
+---
+
+## Descarga automática de Biblias al arrancar
+
+Al arrancar la app (8 segundos después, en background), se comprueban los IDs de Biblias comunitarias predefinidas en `DEFAULT_COMMUNITY_BIBLE_IDS`. Si alguna no está en la base local, se descarga automáticamente desde el bucket `community-bibles` de Supabase Storage. Esto asegura que las iglesias que tienen conexión siempre tengan al menos las versiones recomendadas disponibles.
+
+Las versiones actualmente incluidas en el catálogo comunitario:
+- **RVR1960** — Reina-Valera 1960
+- **LBLA** — La Biblia de las Américas
+- **RVC** — Reina Valera Contemporánea
+
+> Nota: estas versiones pueden tener derechos de autor. Solo se distribuyen mediante el sistema de catálogo comunitario, no se incluyen directamente en el repositorio.
+
+---
+
+## Sincronización de Biblias (Supabase Storage)
+
+El `bibleSyncService.ts` usa `fetch` nativo en lugar del cliente `storage-js` de Supabase, porque `storage-js` usa `FormData` internamente y esto cuelga silenciosamente en el proceso main de Electron para archivos grandes.
+
+Timeouts configurados:
+- **Subida:** 3 minutos (las Biblias pueden pesar ~4 MB)
+- **Descarga:** 2 minutos
+
+El bucket de Supabase Storage se llama `community-bibles`.
+
+---
+
 ## Resolución de conflictos
 
 Si dos usuarios editan la misma canción offline, se detecta el conflicto comparando el `hash` SHA-256 del contenido:

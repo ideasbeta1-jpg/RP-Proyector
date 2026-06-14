@@ -32,9 +32,9 @@ const BASE_URL     = 'https://www.generacionpentecostal.com'
 const LISTING_PATH = '/letras-de-canciones/'
 const DB_PATH      = path.join(process.cwd(), 'dev-data', 'rpproyector.db')
 
-// Delays aleatorios: entre peticiones (3-8 s) y entre páginas del listado (5-12 s)
-const SONG_DELAY_MIN  = 3_000
-const SONG_DELAY_MAX  = 8_000
+// Delays aleatorios: entre peticiones (8-20 s) y entre páginas del listado (5-12 s)
+const SONG_DELAY_MIN  = 8_000
+const SONG_DELAY_MAX  = 20_000
 const PAGE_DELAY_MIN  = 5_000
 const PAGE_DELAY_MAX  = 12_000
 

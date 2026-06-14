@@ -249,6 +249,19 @@ outbox
 
 ---
 
+## Archivos de configuración (no SQLite)
+
+Además de la base de datos, la app persiste configuraciones ligeras como JSON en `{userData}/`:
+
+| Archivo | Contenido | Service |
+|---|---|---|
+| `background-config.json` | `BackgroundConfig` — fondo para canciones y para Biblia | `backgroundService.ts` |
+| `display-preference.json` | `{ displayId: number }` — monitor seleccionado para la salida | `displayPreference.ts` |
+
+Estos archivos se crean la primera vez que el usuario guarda la configuración. Si no existen, se usan los valores por defecto en memoria.
+
+---
+
 ## WAL mode
 
 La base se abre en modo WAL (Write-Ahead Logging) para mejor rendimiento en escrituras concurrentes:

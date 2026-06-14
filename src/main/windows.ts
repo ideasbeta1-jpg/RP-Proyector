@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { BrowserWindow, screen, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
+import { getPreferredDisplayId } from './services/displayPreference'
 
 let controlWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
@@ -54,18 +55,19 @@ export function createControlWindow(): BrowserWindow {
 export function createOutputWindow(): BrowserWindow {
   const displays = screen.getAllDisplays()
   const primary = screen.getPrimaryDisplay()
-  // Buscar un monitor distinto al principal (el del proyector).
-  const external = displays.find((d) => d.id !== primary.id)
-  const hasExternal = Boolean(external)
-  const target = external ?? primary
+  const savedId = getPreferredDisplayId()
+  const target =
+    (savedId !== null ? displays.find((d) => d.id === savedId) : undefined) ??
+    displays.find((d) => d.id !== primary.id) ??
+    primary
 
   outputWindow = new BrowserWindow({
     x: target.bounds.x,
     y: target.bounds.y,
-    width: hasExternal ? target.bounds.width : 960,
-    height: hasExternal ? target.bounds.height : 540,
-    fullscreen: hasExternal,
-    frame: !hasExternal,
+    width: target.bounds.width,
+    height: target.bounds.height,
+    fullscreen: true,
+    frame: false,
     backgroundColor: '#000000',
     title: 'RP Proyector — Salida',
     show: false,
@@ -74,6 +76,8 @@ export function createOutputWindow(): BrowserWindow {
       sandbox: false
     }
   })
+
+  outputWindow.setMenu(null)
 
   outputWindow.on('ready-to-show', () => outputWindow?.show())
 

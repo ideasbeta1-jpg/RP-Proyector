@@ -6,7 +6,7 @@
   "author": "RP Proyector",
   "license": "MIT",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "node scripts/dev.cjs",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -22,15 +22,36 @@
     "appId": "org.iglesiapentecostal.rpproyector",
     "productName": "RP Proyector",
     "copyright": "Copyright © 2026 Iglesia Pentecostal",
-    "directories": { "output": "dist-installer" },
-    "files": ["out/**/*", "!out/**/*.map"],
+    "directories": {
+      "output": "dist-installer"
+    },
+    "files": [
+      "out/**/*",
+      "!out/**/*.map"
+    ],
     "extraResources": [
-      { "from": "resources/bible", "to": "bible", "filter": ["**/*.json"] }
+      {
+        "from": "resources/bible",
+        "to": "bible",
+        "filter": [
+          "**/*.json"
+        ]
+      }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "resources/icon.ico"
     },
@@ -49,10 +70,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
+    "@types/react-window": "^1.8.8",
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.10.0",
     "electron-updater": "^6.8.9",
-    "uuid": "^14.0.0"
+    "react-window": "^1.8.11",
+    "uuid": "^14.0.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -64,6 +88,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.0",
     "electron-builder": "^26.15.3",

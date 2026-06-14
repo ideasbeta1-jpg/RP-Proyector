@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, Globe, Megaphone, Music, Plus, Settings } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useSongsStore } from './store/songsStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import SearchBar from './components/search/SearchBar'
@@ -8,12 +8,13 @@ import SongEditor from './components/songs/SongEditor'
 import BiblePanel from './components/bible/BiblePanel'
 import AnnouncementsPanel from './components/announcements/AnnouncementsPanel'
 import CommunityPanel from './components/community/CommunityPanel'
-import AuthStatus from './components/community/AuthStatus'
 import AuthModal from './components/community/AuthModal'
 import SettingsPanel from './components/settings/SettingsPanel'
-import SectionNavigator from './components/projection/SectionNavigator'
-import SlidePreview from './components/projection/SlidePreview'
-import ProjectionControls from './components/projection/ProjectionControls'
+import ContactModal from './components/contact/ContactModal'
+import RightPanel from './components/projection/RightPanel'
+import SongContentPanel from './components/songs/SongContentPanel'
+import Sidebar from './components/layout/Sidebar'
+import KeyboardShortcutsBar from './components/layout/KeyboardShortcutsBar'
 import type { SyncStatus } from '@shared/types'
 
 type Tab = 'songs' | 'bible' | 'announcements' | 'community'
@@ -21,11 +22,14 @@ type Tab = 'songs' | 'bible' | 'announcements' | 'community'
 export default function App(): React.JSX.Element {
   const refresh = useSongsStore((s) => s.refresh)
   const [tab, setTab] = useState<Tab>('songs')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [authKey, setAuthKey] = useState(0)
 
   useKeyboardShortcuts()
 
@@ -43,115 +47,93 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
-      {/* Columna izquierda */}
-      <section className="flex h-full w-[42%] min-w-[380px] flex-col border-r border-slate-800 p-4">
-        {/* Encabezado */}
-        <div className="mb-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold tracking-tight">
-            RP <span className="text-sky-400">Proyector</span>
-          </h1>
-          <div className="flex items-center gap-2">
-            <AuthStatus
-              onLoginClick={() => setAuthModalOpen(true)}
-              onStatusChange={setSyncStatus}
-            />
-            {tab === 'songs' && (
-              <button
-                onClick={openNew}
-                className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500"
-              >
-                <Plus className="size-4" /> Nueva
-              </button>
-            )}
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              title="Ajustes"
-            >
-              <Settings className="size-4" />
-            </button>
-          </div>
-        </div>
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface text-on-surface">
+      <div className="flex flex-1 overflow-hidden min-h-0">
+      {/* Sidebar de navegación */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((c) => !c)}
+        tab={tab}
+        onTabChange={setTab}
+        onSettingsOpen={() => setSettingsOpen(true)}
+        onLoginClick={() => setAuthModalOpen(true)}
+        authKey={authKey}
+        onStatusChange={setSyncStatus}
+      />
 
-        {/* Pestañas */}
-        <div className="mb-3 grid grid-cols-4 gap-0.5 rounded-lg bg-slate-900 p-0.5">
-          <TabButton active={tab === 'songs'} onClick={() => setTab('songs')}>
-            <Music className="size-3.5" /> Canciones
-          </TabButton>
-          <TabButton active={tab === 'bible'} onClick={() => setTab('bible')}>
-            <BookOpen className="size-3.5" /> Biblia
-          </TabButton>
-          <TabButton active={tab === 'announcements'} onClick={() => setTab('announcements')}>
-            <Megaphone className="size-3.5" /> Anuncios
-          </TabButton>
-          <TabButton active={tab === 'community'} onClick={() => setTab('community')}>
-            <Globe className="size-3.5" /> Comunidad
-          </TabButton>
-        </div>
-
-        {/* Contenido de la pestaña */}
-        {tab === 'songs' ? (
-          <>
-            <div className="mb-3">
-              <SearchBar />
+      {/* Área de contenido central + panel derecho */}
+      <main className="flex flex-1 overflow-hidden">
+        {/* Área de contenido (dinámica según tab) */}
+        <section className="flex flex-1 flex-col overflow-hidden border-r border-outline-variant/20">
+          {tab === 'songs' ? (
+            <div className="flex flex-1 overflow-hidden">
+              {/* Lista de canciones */}
+              <div className="flex w-[240px] shrink-0 flex-col border-r border-outline-variant/20">
+                <div className="p-3 border-b border-outline-variant/20">
+                  <SearchBar />
+                </div>
+                <div className="flex-1 overflow-hidden px-2 py-2">
+                  <SongList onEdit={openEdit} />
+                </div>
+                <div className="p-3 border-t border-outline-variant/20">
+                  <button
+                    onClick={openNew}
+                    className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-outline-variant/40 text-on-surface-variant hover:border-primary/50 hover:text-primary transition-colors font-label text-[10px] uppercase tracking-widest"
+                  >
+                    <Plus className="size-3.5" />
+                    Nueva canción
+                  </button>
+                </div>
+              </div>
+              {/* Contenido / secciones de la canción */}
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <SongContentPanel />
+              </div>
             </div>
-            <SongList onEdit={openEdit} />
-          </>
-        ) : tab === 'bible' ? (
-          <BiblePanel />
-        ) : tab === 'announcements' ? (
-          <AnnouncementsPanel />
-        ) : (
-          <CommunityPanel
-            authenticated={syncStatus?.authenticated ?? false}
-            onLoginRequired={() => setAuthModalOpen(true)}
-          />
-        )}
-      </section>
+          ) : tab === 'bible' ? (
+            <div className="flex flex-1 flex-col overflow-hidden p-4">
+              <BiblePanel />
+            </div>
+          ) : tab === 'announcements' ? (
+            <div className="flex flex-1 flex-col overflow-hidden p-4">
+              <AnnouncementsPanel />
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <CommunityPanel
+                authenticated={syncStatus?.authenticated ?? false}
+                user={syncStatus?.user ?? null}
+                onLoginRequired={() => setAuthModalOpen(true)}
+              />
+            </div>
+          )}
+        </section>
 
-      {/* Columna derecha: preview + navegador + controles */}
-      <section className="flex flex-1 flex-col gap-5 p-6">
-        <SectionNavigator />
-        <SlidePreview />
-        <div className="mt-auto">
-          <ProjectionControls />
-        </div>
-      </section>
+        {/* Panel derecho: preview + controles */}
+        <RightPanel />
+      </main>
 
+      </div>
+      {/* Barra de atajos — en flujo normal al fondo */}
+      <KeyboardShortcutsBar />
+
+      {/* Modales */}
       {editorOpen && (
         <SongEditor songId={editingId} onClose={() => setEditorOpen(false)} />
       )}
       {authModalOpen && (
         <AuthModal
-          onSuccess={() => { setAuthModalOpen(false) }}
+          onSuccess={() => { setAuthModalOpen(false); setAuthKey((k) => k + 1) }}
           onClose={() => setAuthModalOpen(false)}
         />
       )}
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsPanel
+          onClose={() => setSettingsOpen(false)}
+          onContactOpen={() => { setSettingsOpen(false); setContactOpen(true) }}
+        />
+      )}
+      {contactOpen && <ContactModal onClose={() => setContactOpen(false)} />}
     </div>
-  )
-}
-
-function TabButton({
-  active,
-  onClick,
-  children
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}): React.JSX.Element {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition ${
-        active
-          ? 'bg-slate-700 text-slate-100'
-          : 'text-slate-400 hover:text-slate-200'
-      }`}
-    >
-      {children}
-    </button>
   )
 }

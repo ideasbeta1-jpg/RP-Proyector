@@ -85,13 +85,15 @@ Agregar el script:
 
 ## Actualizaciones automáticas
 
-Con `electron-updater`, la app verifica si hay una versión nueva al detectar conexión a internet y se actualiza en segundo plano.
+`electron-updater` **ya está integrado** en el main process (`src/main/index.ts`). Se activa solo en producción (`app.isPackaged`).
 
-```bash
-npm install electron-updater
-```
+Flujo implementado:
+1. Al arrancar, llama a `autoUpdater.checkForUpdatesAndNotify()`.
+2. Cuando detecta una versión nueva, envía el evento push `updater:available` a la ventana de control.
+3. Cuando la descarga termina, envía `updater:downloaded`.
+4. El renderer puede llamar a `updater:install` para instalar y reiniciar.
 
-Configuración en `package.json`:
+Para publicar actualizaciones, agrega en `package.json`:
 
 ```jsonc
 "build": {
@@ -101,17 +103,6 @@ Configuración en `package.json`:
     "repo": "rp-proyector"
   }
 }
-```
-
-En el main process:
-
-```typescript
-import { autoUpdater } from 'electron-updater'
-
-app.whenReady().then(() => {
-  // Solo verifica si hay internet (no fuerza ni bloquea)
-  autoUpdater.checkForUpdatesAndNotify()
-})
 ```
 
 Las actualizaciones se publican como **GitHub Releases** — adjunta el instalador `.exe` y el archivo `latest.yml` (que genera electron-builder automáticamente).

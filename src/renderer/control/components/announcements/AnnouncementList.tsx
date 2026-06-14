@@ -1,9 +1,10 @@
-import { Megaphone, Plus, Trash2, Edit2, Monitor } from 'lucide-react'
+import { Edit2, Monitor, Plus, Trash2 } from 'lucide-react'
 import type { Announcement } from '@shared/types'
 
 interface Props {
   announcements: Announcement[]
   selectedId: string | null
+  activeId: string | null
   onSelect: (ann: Announcement) => void
   onCreate: () => void
   onDelete: (id: string) => void
@@ -13,70 +14,133 @@ interface Props {
 export default function AnnouncementList({
   announcements,
   selectedId,
+  activeId,
   onSelect,
   onCreate,
   onDelete,
   onProject
 }: Props): React.JSX.Element {
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
-          <Megaphone className="size-4 text-amber-400" />
-          Anuncios
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="font-display font-semibold text-lg text-on-surface tracking-tight">Anuncios</p>
+          <p className="font-label text-[9px] uppercase tracking-widest text-outline mt-0.5">
+            {announcements.length} anuncio{announcements.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <button
           onClick={onCreate}
-          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+          className="flex items-center gap-1.5 border border-outline-variant/40 px-3 py-1.5 font-label text-[10px] uppercase tracking-wider text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
         >
-          <Plus className="size-3.5" />
-          Nuevo
+          <Plus className="size-3" /> Nuevo
         </button>
       </div>
 
       {announcements.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-center text-sm text-slate-500">
+        <div className="flex flex-1 items-center justify-center text-center">
           <div>
-            <Megaphone className="mx-auto mb-2 size-8 opacity-30" />
-            <p>No hay anuncios.</p>
-            <p className="mt-1 text-xs">Crea uno con el botón "Nuevo".</p>
+            <p className="font-label text-[10px] uppercase tracking-widest text-outline">
+              No hay anuncios
+            </p>
+            <button
+              onClick={onCreate}
+              className="mt-3 border border-dashed border-outline-variant/40 px-4 py-2 font-label text-[10px] uppercase tracking-wider text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
+            >
+              Crear el primero
+            </button>
           </div>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto space-y-1">
-          {announcements.map((ann) => (
-            <li
-              key={ann.id}
-              onClick={() => onSelect(ann)}
-              className={`group flex cursor-pointer items-center justify-between rounded px-2 py-2 text-sm transition-colors
-                ${selectedId === ann.id ? 'bg-amber-900/40 text-amber-200' : 'text-slate-300 hover:bg-slate-700'}`}
-            >
-              <span className="truncate flex-1">{ann.titulo}</span>
-              <span className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100">
+        <ul className="flex-1 overflow-y-auto space-y-2">
+          {announcements.map((ann) => {
+            const isActive = activeId === ann.id
+            const isSelected = selectedId === ann.id
+            const imageUrl = ann.imagen ? `app-asset:///${ann.imagen}` : null
+
+            return (
+              <li
+                key={ann.id}
+                className={[
+                  'group border transition-colors',
+                  isActive
+                    ? 'border-primary/50 bg-primary/6'
+                    : isSelected
+                      ? 'border-outline-variant bg-surface-container-high'
+                      : 'border-outline-variant/20 bg-surface-container hover:border-outline-variant/50'
+                ].join(' ')}
+              >
+                <div className="flex items-center gap-3 p-3">
+                  {/* Thumbnail */}
+                  <div className="h-12 w-20 shrink-0 overflow-hidden bg-surface-container-high border border-outline-variant/20">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <span className="font-label text-[8px] uppercase tracking-widest text-outline">
+                          Sin img
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {isActive && (
+                        <span className="live-pulse inline-block size-1.5 rounded-full bg-primary shrink-0" />
+                      )}
+                      <p className={`truncate text-base font-medium ${isActive ? 'text-primary' : 'text-on-surface'}`}>
+                        {ann.titulo}
+                      </p>
+                    </div>
+                    {ann.cuerpo && (
+                      <p className="truncate text-xs text-outline mt-0.5">{ann.cuerpo}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onProject(ann) }}
+                      className="p-1.5 text-primary/60 hover:text-primary transition-colors"
+                      title="Proyectar"
+                    >
+                      <Monitor className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSelect(ann) }}
+                      className="p-1.5 text-outline hover:text-on-surface-variant transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(ann.id) }}
+                      className="p-1.5 text-error/60 hover:text-error transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Project button at bottom */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); onProject(ann) }}
-                  className="rounded p-0.5 text-emerald-400 hover:bg-emerald-900/40"
-                  title="Proyectar"
+                  onClick={() => onProject(ann)}
+                  className={[
+                    'w-full py-1.5 font-label text-[9px] uppercase tracking-widest transition-colors border-t',
+                    isActive
+                      ? 'border-primary/20 bg-primary/10 text-primary'
+                      : 'border-outline-variant/10 text-outline hover:text-on-surface-variant hover:bg-surface-container-high'
+                  ].join(' ')}
                 >
-                  <Monitor className="size-3.5" />
+                  {isActive ? '● Proyectando' : 'Proyectar'}
                 </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onSelect(ann) }}
-                  className="rounded p-0.5 text-slate-400 hover:bg-slate-600"
-                  title="Editar"
-                >
-                  <Edit2 className="size-3.5" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(ann.id) }}
-                  className="rounded p-0.5 text-red-400 hover:bg-red-900/40"
-                  title="Eliminar"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </span>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

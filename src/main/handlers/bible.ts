@@ -1,3 +1,4 @@
+import { dialog } from 'electron'
 import { Channels } from '@shared/channels'
 import { handle } from './ipcResult'
 import {
@@ -8,6 +9,8 @@ import {
   searchBible,
   parseReference
 } from '../services/bibleService'
+import { importBibleFromDialog } from '../services/bibleImportService'
+import { getDb } from '../db/connection'
 import type { ParsedReference } from '@shared/types'
 
 export function registerBibleHandlers(): void {
@@ -27,4 +30,15 @@ export function registerBibleHandlers(): void {
     (query: string, versionId: string) => searchBible(query, versionId)
   )
   handle(Channels.bible.parseReference, (input: string) => parseReference(input))
+  handle(Channels.bible.importLocalFile, async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Importar versión de la Biblia',
+      filters: [{ name: 'Biblia JSON', extensions: ['json'] }],
+      properties: ['openFile']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const result = importBibleFromDialog(getDb(), filePaths[0])
+    if (result.error) throw new Error(result.error)
+    return result
+  })
 }

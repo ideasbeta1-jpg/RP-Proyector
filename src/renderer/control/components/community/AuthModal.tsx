@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { X, LogIn, UserPlus } from 'lucide-react'
 import { api } from '../../lib/api'
 
@@ -40,59 +40,74 @@ export default function AuthModal({ onSuccess, onClose }: Props): React.JSX.Elem
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-sm rounded-xl bg-slate-900 p-6 shadow-2xl">
-        {/* Encabezado */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-100">
-            {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
+      <div className="w-full max-w-sm border border-outline-variant/30 bg-surface-container-low shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-outline-variant/20 px-5 py-4">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-on-surface">
+              {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+            </h2>
+            <p className="font-label mt-0.5 text-[9px] uppercase tracking-widest text-outline">
+              Comunidad RP Proyector
+            </p>
+          </div>
+          <button onClick={onClose} className="text-outline transition-colors hover:text-on-surface">
             <X className="size-4" />
           </button>
         </div>
 
-        <form onSubmit={submit} className="flex flex-col gap-3">
+        <form onSubmit={submit} className="flex flex-col gap-4 p-5">
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Email</label>
+            <label className="mb-2 block font-label text-[9px] uppercase tracking-widest text-on-surface-variant">
+              Email
+            </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-600 focus:ring-sky-500"
+              className="input-underline w-full py-2 text-base"
+              placeholder="tu@email.com"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Contraseña</label>
+            <label className="mb-2 block font-label text-[9px] uppercase tracking-widest text-on-surface-variant">
+              Contraseña
+            </label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-600 focus:ring-sky-500"
+              className="input-underline w-full py-2 text-base"
+              placeholder="Mínimo 6 caracteres"
             />
           </div>
           {mode === 'register' && (
             <div>
-              <label className="mb-1 block text-xs text-slate-400">Nombre de la iglesia</label>
+              <label className="mb-2 block font-label text-[9px] uppercase tracking-widest text-on-surface-variant">
+                Nombre de la iglesia
+              </label>
               <input
                 type="text"
                 value={iglesia}
                 onChange={(e) => setIglesia(e.target.value)}
-                className="w-full rounded bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-600 focus:ring-sky-500"
+                className="input-underline w-full py-2 text-base"
                 placeholder="Ej. Iglesia Pentecostal Rincón"
               />
             </div>
           )}
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && (
+            <p className="font-label text-[10px] uppercase tracking-wider text-error">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center justify-center gap-2 rounded bg-sky-600 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 bg-primary py-3 font-label text-xs uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-fixed-dim disabled:opacity-50"
           >
             {mode === 'login'
               ? <><LogIn className="size-4" />{loading ? 'Entrando…' : 'Entrar'}</>
@@ -100,16 +115,18 @@ export default function AuthModal({ onSuccess, onClose }: Props): React.JSX.Elem
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
-          {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
-          {' '}
-          <button
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }}
-            className="text-sky-400 hover:underline"
-          >
-            {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-          </button>
-        </p>
+        <div className="border-t border-outline-variant/20 px-5 py-3 text-center">
+          <p className="font-body text-sm text-outline">
+            {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+            {' '}
+            <button
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }}
+              className="text-primary transition-colors hover:text-primary-container hover:underline"
+            >
+              {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -27,7 +27,7 @@ function insertSections(
 }
 
 export function listSongs(opts: ListSongsOptions = {}): SongListItem[] {
-  const { limit = 200, offset = 0 } = opts
+  const { limit = 1000, offset = 0 } = opts
   const db = getDb()
   return db
     .prepare(

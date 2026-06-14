@@ -7,11 +7,9 @@ import AnnouncementList from './AnnouncementList'
 import AnnouncementEditor from './AnnouncementEditor'
 import type { Announcement } from '@shared/types'
 
-type View = 'list' | 'editor'
-
 const INTERVAL_OPTIONS = [
-  { label: '5 s', ms: 5000 },
-  { label: '8 s', ms: 8000 },
+  { label: '5 s',  ms: 5000 },
+  { label: '8 s',  ms: 8000 },
   { label: '12 s', ms: 12000 },
   { label: '20 s', ms: 20000 }
 ]
@@ -19,9 +17,10 @@ const INTERVAL_OPTIONS = [
 export default function AnnouncementsPanel(): React.JSX.Element {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [selected, setSelected] = useState<Announcement | null>(null)
-  const [view, setView] = useState<View>('list')
+  const [editorOpen, setEditorOpen] = useState(false)
   const [rotating, setRotating] = useState(false)
   const [intervalMs, setIntervalMs] = useState(8000)
+  const [activeId, setActiveId] = useState<string | null>(null)
   const sendAnnouncement = useProjectionStore((s) => s.sendAnnouncement)
 
   useAnnouncementRotation(announcements, rotating, intervalMs)
@@ -35,32 +34,30 @@ export default function AnnouncementsPanel(): React.JSX.Element {
 
   const handleCreate = (): void => {
     setSelected(null)
-    setView('editor')
+    setEditorOpen(true)
   }
 
   const handleSelect = (ann: Announcement): void => {
     setSelected(ann)
-    setView('editor')
+    setEditorOpen(true)
   }
 
   const handleDelete = async (id: string): Promise<void> => {
+    if (!confirm('¿Eliminar este anuncio?')) return
     await api.announcements.remove(id)
-    if (selected?.id === id) { setSelected(null); setView('list') }
+    if (activeId === id) setActiveId(null)
     loadList()
   }
 
   const handleSave = (): void => {
-    setView('list')
+    setEditorOpen(false)
     setSelected(null)
     loadList()
   }
 
-  const handleCancel = (): void => {
-    setView('list')
-  }
-
   const handleProject = (ann: Announcement): void => {
     setRotating(false)
+    setActiveId(ann.id)
     sendAnnouncement({
       titulo: ann.titulo,
       cuerpo: ann.cuerpo,
@@ -68,54 +65,82 @@ export default function AnnouncementsPanel(): React.JSX.Element {
     })
   }
 
-  if (view === 'editor') {
-    return (
-      <AnnouncementEditor
-        announcement={selected}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
-    )
-  }
-
   return (
-    <div className="flex h-full flex-col gap-3">
-      <AnnouncementList
-        announcements={announcements}
-        selectedId={selected?.id ?? null}
-        onSelect={handleSelect}
-        onCreate={handleCreate}
-        onDelete={handleDelete}
-        onProject={handleProject}
-      />
-
-      {/* Barra de auto-rotación */}
+    <div className="flex h-full flex-col gap-0 overflow-hidden">
+      {/* Mode bar */}
       {announcements.length > 0 && (
-        <div className="mt-auto flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2">
-          <button
-            onClick={() => setRotating((r) => !r)}
-            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors
-              ${rotating
-                ? 'bg-amber-600 text-white hover:bg-amber-500'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-          >
-            {rotating
-              ? <><Square className="size-3" /> Detener</>
-              : <><Play className="size-3" /> Modo Presentación</>}
-          </button>
+        <div className="flex items-center gap-3 pb-3 mb-3 border-b border-outline-variant/20">
+          <span className="font-label text-[9px] uppercase tracking-widest text-outline">Modo:</span>
 
-          <select
-            value={intervalMs}
-            onChange={(e) => setIntervalMs(Number(e.target.value))}
-            disabled={rotating}
-            className="ml-auto rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-300 outline-none ring-1 ring-slate-600 disabled:opacity-40"
-          >
-            {INTERVAL_OPTIONS.map((o) => (
-              <option key={o.ms} value={o.ms}>{o.label}</option>
-            ))}
-          </select>
-          <span className="text-xs text-slate-500">por anuncio</span>
+          {/* Manual/Auto toggle */}
+          <div className="flex border border-outline-variant/40">
+            <button
+              onClick={() => setRotating(false)}
+              className={[
+                'flex items-center gap-1.5 px-3 py-1.5 font-label text-[10px] uppercase tracking-wider transition-colors',
+                !rotating
+                  ? 'bg-surface-container-high text-on-surface border-r border-outline-variant/40'
+                  : 'text-outline hover:text-on-surface-variant border-r border-outline-variant/40'
+              ].join(' ')}
+            >
+              <Play className="size-3" /> Manual
+            </button>
+            <button
+              onClick={() => setRotating(true)}
+              className={[
+                'flex items-center gap-1.5 px-3 py-1.5 font-label text-[10px] uppercase tracking-wider transition-colors',
+                rotating
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-outline hover:text-on-surface-variant'
+              ].join(' ')}
+            >
+              <Play className="size-3" /> Auto
+            </button>
+          </div>
+
+          {/* Interval + stop */}
+          {rotating && (
+            <>
+              <select
+                value={intervalMs}
+                onChange={(e) => setIntervalMs(Number(e.target.value))}
+                className="bg-surface-container border border-outline-variant/40 px-2 py-1 font-label text-[10px] uppercase tracking-wider text-on-surface-variant focus:border-primary focus:outline-none"
+              >
+                {INTERVAL_OPTIONS.map((o) => (
+                  <option key={o.ms} value={o.ms}>{o.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setRotating(false)}
+                className="flex items-center gap-1.5 border border-primary/40 bg-primary/10 px-3 py-1.5 font-label text-[10px] uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Square className="size-3" /> Detener
+              </button>
+            </>
+          )}
         </div>
+      )}
+
+      {/* List */}
+      <div className="flex-1 overflow-hidden">
+        <AnnouncementList
+          announcements={announcements}
+          selectedId={selected?.id ?? null}
+          activeId={activeId}
+          onSelect={handleSelect}
+          onCreate={handleCreate}
+          onDelete={handleDelete}
+          onProject={handleProject}
+        />
+      </div>
+
+      {/* Editor modal */}
+      {editorOpen && (
+        <AnnouncementEditor
+          announcement={selected}
+          onSave={handleSave}
+          onCancel={() => setEditorOpen(false)}
+        />
       )}
     </div>
   )

@@ -2,9 +2,10 @@ import { app, safeStorage } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import ws from 'ws'
 
-const SUPABASE_URL = 'https://ualbpbyarhfpevbtrbkc.supabase.co'
-const SUPABASE_ANON_KEY =
+export const SUPABASE_URL = 'https://ualbpbyarhfpevbtrbkc.supabase.co'
+export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhbGJwYnlhcmhmcGV2YnRyYmtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNjI4MjAsImV4cCI6MjA5NjkzODgyMH0.xsqn9TGzbQn0p733thpW52e025UH3X4xd9LfuXxx98s'
 
 // ── Almacenamiento seguro de sesión usando safeStorage de Electron ──
@@ -56,7 +57,10 @@ export function getSupabase(): SupabaseClient {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false
-      }
+      },
+      // Node.js 20 (Electron 33) no tiene WebSocket nativo; se requiere el paquete 'ws'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      realtime: { transport: ws as any }
     })
   }
   return _client

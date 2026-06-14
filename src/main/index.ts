@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, protocol, net } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, protocol, net, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -13,7 +13,10 @@ import { registerAuthHandlers } from './handlers/auth'
 import { registerSyncHandlers } from './handlers/sync'
 import { registerBackupHandlers } from './handlers/backup'
 import { registerThemeHandlers } from './handlers/theme'
-import { autoImportDefaultBible } from './services/bibleImportService'
+import { registerDisplayHandlers } from './handlers/display'
+import { registerBackgroundHandlers } from './handlers/background'
+import { autoImportDefaultBible, DEFAULT_COMMUNITY_BIBLE_IDS } from './services/bibleImportService'
+import { downloadBible } from './services/bibleSyncService'
 import { Channels } from '@shared/channels'
 import type { ShortcutAction } from '@shared/types'
 
@@ -79,13 +82,36 @@ if (!app.requestSingleInstanceLock()) {
     registerSyncHandlers()
     registerBackupHandlers()
     registerThemeHandlers()
+    registerDisplayHandlers()
+    registerBackgroundHandlers()
 
     // Handler para instalar actualización desde el renderer
     ipcMain.on('updater:install', () => autoUpdater.quitAndInstall())
 
+    // Abrir URLs externas — solo se permiten esquemas http/https
+    ipcMain.handle(Channels.shell.openExternal, (_e, url: string) => {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return
+      return shell.openExternal(url)
+    })
+
     // 3) Ventanas (control + salida).
     createControlWindow()
     createOutputWindow()
+
+    // 3b) Descargar biblias por defecto desde la comunidad si no están instaladas localmente.
+    // Se ejecuta en background 8 segundos después para no bloquear el arranque.
+    setTimeout(() => {
+      const db = getDb()
+      for (const bibleId of DEFAULT_COMMUNITY_BIBLE_IDS) {
+        const exists = db.prepare('SELECT id FROM bible_versions WHERE id = ?').get(bibleId)
+        if (!exists) {
+          downloadBible(db, bibleId)
+            .then(() => console.log(`[Bible] Descargada de la comunidad: ${bibleId}`))
+            .catch((e) => console.warn(`[Bible] No se pudo descargar ${bibleId} de la comunidad:`, e))
+        }
+      }
+    }, 8000)
 
     // 4) Atajos globales (después de crear ventanas).
     registerGlobalShortcuts()
