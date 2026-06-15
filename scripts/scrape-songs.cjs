@@ -511,10 +511,10 @@ async function main () {
   // ── Modo --test: parsea una canción sin tocar la BD ─────────────────
   if (isTest) {
     console.log('  Modo TEST (sin escritura en BD)\n')
-    const { html: listHtml } = await httpGet(`${BASE_URL}${LISTING_PATH}`)
-    const urls = parseListingLinks(listHtml)
-    if (urls.length === 0) { console.error('No se encontraron URLs.'); process.exit(1) }
-    const testUrl = urls[0]
+    // Tomar la primera URL directamente de la API REST
+    const { data } = await apiGet(`${REST_BASE}&page=1`)
+    if (!data || data.length === 0) { console.error('No se encontraron URLs.'); process.exit(1) }
+    const testUrl = data[0].link
     console.log(`  URL: ${testUrl}\n`)
     await songDelay()
     const { html: songHtml } = await httpGet(testUrl)
